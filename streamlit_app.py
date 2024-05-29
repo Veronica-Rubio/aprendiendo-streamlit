@@ -1,40 +1,38 @@
-import altair as alt
-import numpy as np
-import pandas as pd
 import streamlit as st
+import pandas as pd
 
-"""
-# Welcome to Streamlit!
+# Cargar datos
+@st.cache
+def cargar_datos():
+    data = pd.read_csv('IMDB-Movie-Data.csv')
+    return data
 
-Edit `/streamlit_app.py` to customize this app to your heart's desire :heart:.
-If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-forums](https://discuss.streamlit.io).
+data = cargar_datos()
 
-In the meantime, below is an example of what you can do with just a few lines of code:
-"""
+# Título de la aplicación
+st.title('Aplicación de Búsqueda de Películas')
 
-num_points = st.slider("Number of points in spiral", 1, 10000, 1100)
-num_turns = st.slider("Number of turns in spiral", 1, 300, 31)
+# Crear sidebar para búsqueda
+st.sidebar.header('Parámetros de Búsqueda')
+titulo = st.sidebar.text_input('Título de la Película')
+director = st.sidebar.text_input('Director')
+genero = st.sidebar.text_input('Género')
+año_inicio = st.sidebar.number_input('Año de Inicio', min_value=int(data['Year'].min()), max_value=int(data['Year'].max()), step=1, format="%i")
+año_fin = st.sidebar.number_input('Año de Fin', min_value=int(data['Year'].min()), max_value=int(data['Year'].max()), step=1, format="%i")
 
-indices = np.linspace(0, 1, num_points)
-theta = 2 * np.pi * num_turns * indices
-radius = indices
+# Botón de búsqueda
+if st.sidebar.button('Buscar'):
+    # Filtrar datos
+    resultados = data[(data['Title'].str.contains(titulo, case=False, na=False)) &
+                      (data['Director'].str.contains(director, case=False, na=False)) &
+                      (data['Genre'].str.contains(genero, case=False, na=False)) &
+                      (data['Year'] >= año_inicio) & (data['Year'] <= año_fin)]
 
-x = radius * np.cos(theta)
-y = radius * np.sin(theta)
+    # Mostrar resultados
+    if resultados.empty:
+        st.write('No se encontraron películas que coincidan con los criterios de búsqueda.')
+    else:
+        st.write(f'Se encontraron {len(resultados)} películas:')
+        st.dataframe(resultados)
 
-df = pd.DataFrame({
-    "x": x,
-    "y": y,
-    "idx": indices,
-    "rand": np.random.randn(num_points),
-})
-
-st.altair_chart(alt.Chart(df, height=700, width=700)
-    .mark_point(filled=True)
-    .encode(
-        x=alt.X("x", axis=None),
-        y=alt.Y("y", axis=None),
-        color=alt.Color("idx", legend=None, scale=alt.Scale()),
-        size=alt.Size("rand", legend=None, scale=alt.Scale(range=[1, 150])),
-    ))
+# Ejecutar la aplicación: streamlit run nombre_de_tu_archivo.py
